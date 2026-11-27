@@ -1,0 +1,32 @@
+{% macro render_brand_logo(branding, size_class="w-8 h-8") %}
+<span class="relative inline-flex items-center justify-center {{ size_class }} rounded-lg overflow-hidden shrink-0 select-none">
+  {% if branding and branding.logo_path %}
+    <img
+      src="{{ branding.logo_path }}"
+      alt="{{ branding.brand_name }} logo"
+      referrerpolicy="no-referrer"
+      class="w-full h-full object-contain bg-white border border-slate-200 rounded-lg"
+      onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');"
+    />
+    <span class="hidden w-full h-full inline-flex items-center justify-center bg-slate-900 rounded-lg">
+      <svg class="w-[70%] h-[70%]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6v12" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+        <path d="M6 9c0 3 12 1 12 5v4" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" />
+        <circle cx="6" cy="6" r="2.25" fill="#F8FAFC" />
+        <circle cx="6" cy="18" r="2.25" fill="#94A3B8" />
+        <circle cx="18" cy="18" r="2.25" fill="#3B82F6" />
+      </svg>
+    </span>
+  {% else %}
+    <span class="w-full h-full inline-flex items-center justify-center bg-slate-900 rounded-lg">
+      <svg class="w-[70%] h-[70%]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6v12" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+        <path d="M6 9c0 3 12 1 12 5v4" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" />
+        <circle cx="6" cy="6" r="2.25" fill="#F8FAFC" />
+        <circle cx="6" cy="18" r="2.25" fill="#94A3B8" />
+        <circle cx="18" cy="18" r="2.25" fill="#3B82F6" />
+      </svg>
+    </span>
+  {% endif %}
+</span>
+{% endmacro %}

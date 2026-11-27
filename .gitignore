@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+__pycache__/
+.pytest_cache/
+data/
+logs/
+keys/
+app/static/css/styles.css
+app/static/branding/

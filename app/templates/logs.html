@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block header_action %}
+  <a
+    href="/logs?level={{ level_filter }}&limit={{ limit }}"
+    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors whitespace-nowrap shrink-0"
+  >
+    Refresh Logs
+  </a>
+{% endblock %}
+
+{% block content %}
+  <div class="mb-6">
+    <h1 class="font-display text-2xl font-bold tracking-tight text-slate-900">Pipeline Runner Logs</h1>
+    <p class="mt-1 text-sm text-slate-600 font-mono">{{ log_file_path }}</p>
+  </div>
+
+  <section class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+    <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
+        {% for lvl in ['ALL', 'INFO', 'WARNING', 'ERROR'] %}
+          <a
+            href="/logs?level={{ lvl }}&limit={{ limit }}"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 {% if level_filter == lvl %}bg-white text-slate-900 shadow-xs{% else %}text-slate-600 hover:text-slate-900{% endif %}"
+          >
+            {{ lvl }}
+          </a>
+        {% endfor %}
+      </div>
+      <span class="font-mono tabular-nums text-xs text-slate-500">Showing latest {{ log_entries | length }} entries</span>
+    </div>
+
+    {% if log_entries %}
+      <div class="divide-y divide-slate-200 font-mono text-xs">
+        {% for entry in log_entries %}
+          <div class="px-5 py-2.5 flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 hover:bg-slate-50">
+            <span class="tabular-nums text-slate-400 shrink-0">{{ entry.timestamp or '—' }}</span>
+            <span class="font-semibold w-16 shrink-0 {% if entry.level == 'ERROR' %}text-rose-700{% elif entry.level == 'WARNING' %}text-amber-700{% else %}text-blue-700{% endif %}">
+              {{ entry.level }}
+            </span>
+            <span class="text-slate-800 break-words">{{ entry.message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-8 text-center text-sm text-slate-500">No log entries matching the selected level.</div>
+    {% endif %}
+  </section>
+{% endblock %}

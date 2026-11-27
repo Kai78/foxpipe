@@ -1,0 +1,442 @@
+{% from "partials/brand_logo.html" import render_brand_logo %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ page_title }} · {{ branding.brand_name if branding else app_title }}</title>
+    <meta name="description" content="GitLab SSH Pipeline Runner audit dashboard and configuration console." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
+    <div class="min-h-screen flex flex-col lg:flex-row">
+      <!-- Mobile Navigation Overlay -->
+      <div
+        id="mobile-nav-backdrop"
+        class="fixed inset-0 z-30 bg-slate-900/40 hidden lg:hidden"
+        onclick="toggleMobileNav(false)"
+      ></div>
+
+      <!-- Sidebar Navigation (256px on desktop) -->
+      <aside
+        id="sidebar-nav"
+        class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col justify-between transform -translate-x-full transition-transform duration-200 lg:translate-x-0 lg:static lg:shrink-0"
+      >
+        <div class="flex-1 min-h-0 flex flex-col">
+          <div class="h-16 px-5 flex items-center justify-between border-b border-slate-200 gap-2 shrink-0">
+            <a
+              href="/"
+              class="flex items-center gap-2.5 min-w-0 font-display text-base font-bold tracking-tight text-slate-900 whitespace-nowrap"
+            >
+              {{ render_brand_logo(branding, "w-7 h-7") }}
+              <span class="truncate">{{ branding.brand_name if branding else "Pipeline Runner" }}</span>
+            </a>
+            <button
+              type="button"
+              class="lg:hidden p-1.5 text-slate-500 hover:text-slate-900 rounded-md"
+              onclick="toggleMobileNav(false)"
+              aria-label="Close navigation"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {% set current_config_section = active_section|default('') %}
+          {% set is_config_page = (active_nav == 'config') %}
+          <nav class="flex-1 overflow-y-auto p-4 space-y-1" aria-label="Primary Navigation">
+            <a
+              href="/"
+              class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 {% if active_nav == 'executions' %}bg-slate-900 text-white{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+              </svg>
+              <span>Executions</span>
+            </a>
+
+            <!-- Configuration + Embedded Sidebar Tree -->
+            <div class="space-y-1">
+              <div class="flex items-center gap-1 rounded-lg {% if is_config_page %}bg-slate-900 text-white{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                <a
+                  href="/config"
+                  class="flex-1 flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors whitespace-nowrap min-w-0"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                  </svg>
+                  <span class="truncate">Configuration</span>
+                </a>
+                <button
+                  type="button"
+                  onclick="toggleSidebarConfigTree(this)"
+                  aria-label="Toggle Configuration Tree"
+                  aria-expanded="{% if is_config_page %}true{% else %}false{% endif %}"
+                  aria-controls="sidebar-config-tree"
+                  class="p-2 mr-1 rounded-md transition-colors {% if is_config_page %}text-slate-300 hover:text-white hover:bg-slate-800{% else %}text-slate-400 hover:text-slate-700 hover:bg-slate-200/70{% endif %}"
+                >
+                  <svg class="w-3.5 h-3.5 transition-transform {% if is_config_page %}rotate-90{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              <div
+                id="sidebar-config-tree"
+                aria-label="Configuration Tree"
+                class="ml-1.5 pl-1.5 border-l border-slate-200 space-y-1 pt-1 pb-1 {% if not is_config_page %}hidden{% endif %}"
+              >
+                <ul role="tree" class="space-y-1 text-xs">
+                  <!-- Branch 1: General & Branding -->
+                  <li role="treeitem" aria-expanded="true">
+                    <div class="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onclick="toggleTreeBranch('tree-branch-branding', this)"
+                        aria-label="Toggle General & Branding branch"
+                        class="p-0.5 text-slate-400 hover:text-slate-700 rounded shrink-0"
+                      >
+                        <svg class="w-3 h-3 transition-transform rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <a
+                        href="/config?section=branding"
+                        data-tree-sections="branding"
+                        onclick="return navigateConfigTree(event, 'branding')"
+                        class="tree-node-btn flex-1 text-left px-1.5 py-1 rounded-md font-medium transition-colors truncate {% if is_config_page and current_config_section == 'branding' %}bg-slate-200/80 text-slate-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+                      >
+                        General &amp; Branding
+                      </a>
+                    </div>
+                    <ul id="tree-branch-branding" role="group" class="ml-2 pl-2 mt-0.5 border-l border-slate-200 space-y-0.5">
+                      <li>
+                        <a
+                          href="/config?section=branding#branding-logo-card"
+                          data-tree-section="branding"
+                          data-anchor="branding-logo-card"
+                          onclick="return navigateConfigTree(event, 'branding', 'branding-logo-card')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'branding' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          Logo &amp; Brand Identity
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="/config?section=branding#branding-app-card"
+                          data-tree-section="branding"
+                          data-anchor="branding-app-card"
+                          onclick="return navigateConfigTree(event, 'branding', 'branding-app-card')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        >
+                          App Title &amp; Simulator
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
+
+                  <!-- Branch 2: Security (Local Users + Auth Policy + LDAP) -->
+                  <li role="treeitem" aria-expanded="true">
+                    <div class="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onclick="toggleTreeBranch('tree-branch-security', this)"
+                        aria-label="Toggle Security branch"
+                        class="p-0.5 text-slate-400 hover:text-slate-700 rounded shrink-0"
+                      >
+                        <svg class="w-3 h-3 transition-transform rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <a
+                        href="/config?section=security"
+                        data-tree-sections="security"
+                        onclick="return navigateConfigTree(event, 'security')"
+                        class="tree-node-btn flex-1 text-left px-1.5 py-1 rounded-md font-medium transition-colors truncate {% if is_config_page and current_config_section == 'security' %}bg-slate-200/80 text-slate-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+                      >
+                        Security
+                      </a>
+                    </div>
+                    <ul id="tree-branch-security" role="group" class="ml-2 pl-2 mt-0.5 border-l border-slate-200 space-y-0.5">
+                      <li>
+                        <a
+                          href="/config?section=security#security-users-card"
+                          data-tree-section="security"
+                          data-anchor="security-users-card"
+                          onclick="return navigateConfigTree(event, 'security', 'security-users-card')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'security' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          Local Users &amp; Passwords
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="/config?section=security#security-ldap-card"
+                          data-tree-section="security"
+                          data-anchor="security-ldap-card"
+                          onclick="return navigateConfigTree(event, 'security', 'security-ldap-card')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        >
+                          Auth Policy &amp; LDAP Settings
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
+
+                  <!-- Branch 3: GitLab & Pipeline Execution -->
+                  <li role="treeitem" aria-expanded="true">
+                    <div class="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onclick="toggleTreeBranch('tree-branch-pipelines', this)"
+                        aria-label="Toggle GitLab & Pipelines branch"
+                        class="p-0.5 text-slate-400 hover:text-slate-700 rounded shrink-0"
+                      >
+                        <svg class="w-3 h-3 transition-transform rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <a
+                        href="/config?section=webhook"
+                        data-tree-sections="webhook,ssh,pipeline"
+                        onclick="return navigateConfigTree(event, 'webhook')"
+                        class="tree-node-btn flex-1 text-left px-1.5 py-1 rounded-md font-medium transition-colors truncate {% if is_config_page and current_config_section in ['webhook', 'ssh', 'pipeline'] %}bg-slate-200/80 text-slate-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+                      >
+                        GitLab &amp; Pipelines
+                      </a>
+                    </div>
+                    <ul id="tree-branch-pipelines" role="group" class="ml-2 pl-2 mt-0.5 border-l border-slate-200 space-y-0.5">
+                      <li>
+                        <a
+                          href="/config?section=webhook"
+                          data-tree-section="webhook"
+                          onclick="return navigateConfigTree(event, 'webhook')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'webhook' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          Webhook &amp; Events
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="/config?section=ssh"
+                          data-tree-section="ssh"
+                          onclick="return navigateConfigTree(event, 'ssh')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'ssh' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          SSH Keys &amp; Cloning
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="/config?section=pipeline"
+                          data-tree-section="pipeline"
+                          onclick="return navigateConfigTree(event, 'pipeline')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'pipeline' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          Workspace &amp; Workers
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
+
+                  <!-- Branch 4: Storage & System -->
+                  <li role="treeitem" aria-expanded="true">
+                    <div class="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onclick="toggleTreeBranch('tree-branch-system', this)"
+                        aria-label="Toggle Storage & System branch"
+                        class="p-0.5 text-slate-400 hover:text-slate-700 rounded shrink-0"
+                      >
+                        <svg class="w-3 h-3 transition-transform rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <a
+                        href="/config?section=storage"
+                        data-tree-sections="storage,yaml"
+                        onclick="return navigateConfigTree(event, 'storage')"
+                        class="tree-node-btn flex-1 text-left px-1.5 py-1 rounded-md font-medium transition-colors truncate {% if is_config_page and current_config_section in ['storage', 'yaml'] %}bg-slate-200/80 text-slate-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+                      >
+                        Storage &amp; System
+                      </a>
+                    </div>
+                    <ul id="tree-branch-system" role="group" class="ml-2 pl-2 mt-0.5 border-l border-slate-200 space-y-0.5">
+                      <li>
+                        <a
+                          href="/config?section=storage"
+                          data-tree-section="storage"
+                          onclick="return navigateConfigTree(event, 'storage')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'storage' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          Database &amp; Logs
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="/config?section=yaml"
+                          data-tree-section="yaml"
+                          onclick="return navigateConfigTree(event, 'yaml')"
+                          class="tree-leaf-btn block px-2 py-1 rounded-md transition-colors truncate {% if is_config_page and current_config_section == 'yaml' %}bg-blue-50 text-blue-800 font-medium{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}"
+                        >
+                          YAML Inspector
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <a
+              href="/logs"
+              class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 {% if active_nav == 'logs' %}bg-slate-900 text-white{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              <span>Audit Logs</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="p-5 border-t border-slate-200 text-xs text-slate-500 space-y-3 shrink-0">
+          <div class="space-y-1">
+            <div class="font-medium text-slate-700">Audit Storage</div>
+            <div class="font-mono text-slate-600 truncate" title="{{ db_info.path }}">
+              {{ db_info.engine }} · {{ db_info.path.split('/')[-1] }} · {{ db_info.size_human }}
+            </div>
+            <div class="font-mono tabular-nums text-slate-500">
+              {{ db_info.row_count }} recorded runs
+            </div>
+          </div>
+
+          {% if auth_enabled and current_user %}
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-medium text-slate-800 truncate">{{ current_user.display_name }}</div>
+                <div class="font-mono text-slate-400 truncate">{{ current_user.auth_source }}</div>
+              </div>
+              <form method="post" action="/logout" class="shrink-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button
+                  type="submit"
+                  class="text-xs font-medium text-slate-600 hover:text-slate-900 underline-offset-2 hover:underline whitespace-nowrap"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </aside>
+
+      <!-- Main Content Shell -->
+      <div class="flex-1 min-w-0 flex flex-col">
+        <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between gap-8">
+          <div class="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              class="lg:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 rounded-md"
+              onclick="toggleMobileNav(true)"
+              aria-label="Open navigation"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+            <a
+              href="/"
+              class="flex items-center gap-2 shrink-0 text-slate-900 hover:opacity-85 transition-opacity"
+              aria-label="{{ branding.brand_name if branding else 'Pipeline Runner' }} home"
+            >
+              {{ render_brand_logo(branding, "w-7 h-7") }}
+              <span class="lg:hidden font-display text-sm font-bold tracking-tight whitespace-nowrap">
+                {{ branding.brand_name if branding else "Pipeline Runner" }}
+              </span>
+            </a>
+            <span aria-hidden="true" class="h-4 w-px bg-slate-200 shrink-0"></span>
+            <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm text-slate-500 min-w-0">
+              {% for crumb in breadcrumbs %}
+                {% if not loop.last %}
+                  <span class="truncate">{{ crumb }}</span>
+                  <span aria-hidden="true" class="text-slate-300">/</span>
+                {% else %}
+                  <span class="font-medium text-slate-900 truncate">{{ crumb }}</span>
+                {% endif %}
+              {% endfor %}
+            </nav>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            {% block header_action %}{% endblock %}
+          </div>
+        </header>
+
+        <main class="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <script>
+      function toggleMobileNav(open) {
+        const sidebar = document.getElementById("sidebar-nav");
+        const backdrop = document.getElementById("mobile-nav-backdrop");
+        if (!sidebar || !backdrop) return;
+        if (open) {
+          sidebar.classList.remove("-translate-x-full");
+          backdrop.classList.remove("hidden");
+        } else {
+          sidebar.classList.add("-translate-x-full");
+          backdrop.classList.add("hidden");
+        }
+      }
+
+      function toggleSidebarConfigTree(btn) {
+        const tree = document.getElementById("sidebar-config-tree");
+        if (!tree) return;
+        const hidden = tree.classList.toggle("hidden");
+        const icon = btn ? btn.querySelector("svg") : null;
+        if (icon) {
+          icon.classList.toggle("rotate-90", !hidden);
+        }
+        if (btn) {
+          btn.setAttribute("aria-expanded", hidden ? "false" : "true");
+        }
+      }
+
+      function toggleTreeBranch(branchId, btn) {
+        const group = document.getElementById(branchId);
+        if (!group) return;
+        const collapsed = group.classList.toggle("hidden");
+        const icon = btn ? btn.querySelector("svg") : null;
+        if (icon) {
+          icon.classList.toggle("rotate-90", !collapsed);
+        }
+        const parentItem = btn ? btn.closest("[role='treeitem']") : null;
+        if (parentItem) {
+          parentItem.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        }
+      }
+
+      function navigateConfigTree(event, sectionName, anchorId) {
+        if (typeof selectConfigSection === "function") {
+          event.preventDefault();
+          selectConfigSection(sectionName, anchorId);
+          toggleMobileNav(false);
+          return false;
+        }
+        return true;
+      }
+    </script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

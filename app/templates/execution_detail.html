@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block header_action %}
+  <div class="flex items-center gap-2.5 shrink-0">
+    <form method="post" action="/executions/{{ record.id }}/rerun">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input type="hidden" name="target" value="detail" />
+      <button
+        type="submit"
+        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        <span>Re-run</span>
+      </button>
+    </form>
+    <a
+      href="/"
+      class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors whitespace-nowrap shrink-0"
+    >
+      Back to Executions
+    </a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <!-- Top Audit Header -->
+  <div class="mb-6 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <span class="font-mono text-slate-700">{{ record.id }}</span>
+        {% if record.rerun_of_id %}
+          <span aria-hidden="true">·</span>
+          <span>Re-run of <a href="/executions/{{ record.rerun_of_id }}" class="font-mono text-blue-700 hover:underline">{{ record.rerun_of_id }}</a></span>
+        {% endif %}
+        <span aria-hidden="true">·</span>
+        <span>{{ record.event_name }}</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ record.project_namespace }}</span>
+        <span aria-hidden="true">·</span>
+        <span class="font-mono tabular-nums">{{ record.created_at | ts_fmt }}</span>
+      </div>
+      <h1 class="mt-2 font-display text-2xl font-bold tracking-tight text-slate-900">
+        {{ record.commit_title or record.mr_title or 'Pipeline Execution' }}
+      </h1>
+      {% if record.commit_message and record.commit_message != record.commit_title %}
+        <pre class="mt-2 text-sm text-slate-600 whitespace-pre-wrap font-sans">{{ record.commit_message }}</pre>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-4 shrink-0">
+      {% if record.status.value == 'succeeded' %}
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+          <span>Succeeded</span>
+        </span>
+      {% elif record.status.value == 'failed' %}
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span>Failed</span>
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ record.status.value | capitalize }}</span>
+        </span>
+      {% endif %}
+      <span class="text-slate-300">|</span>
+      <span class="font-mono tabular-nums text-sm text-slate-700">{{ record.total_duration_ms | duration_fmt }}</span>
+    </div>
+  </div>
+
+  {% if record.error_message %}
+    <div class="mb-6 bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-800">
+      <div class="font-semibold">Execution Error</div>
+      <div class="mt-1 font-mono text-xs break-all">{{ record.error_message }}</div>
+    </div>
+  {% endif %}
+
+  <!-- Context Metadata Grid -->
+  <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 space-y-2.5">
+      <h2 class="text-xs font-semibold text-slate-500">Trigger &amp; Author</h2>
+      <div class="text-sm font-medium text-slate-900">{{ record.triggered_by_name }}</div>
+      <div class="text-xs font-mono text-slate-600 space-y-1">
+        {% if record.triggered_by_username %}
+          <div>Username: @{{ record.triggered_by_username }}</div>
+        {% endif %}
+        {% if record.triggered_by_email %}
+          <div>Email: {{ record.triggered_by_email }}</div>
+        {% endif %}
+        <div>Kind: {{ record.object_kind }}</div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl p-5 space-y-2.5">
+      <h2 class="text-xs font-semibold text-slate-500">Git Reference &amp; Commit</h2>
+      <div class="text-sm font-mono text-slate-900">
+        {% if record.tag_name %}
+          tag {{ record.tag_name }}
+        {% elif record.mr_iid %}
+          MR !{{ record.mr_iid }} ({{ record.mr_source_branch }} &rarr; {{ record.mr_target_branch }})
+        {% else %}
+          branch {{ record.branch_name or 'default' }}
+        {% endif %}
+      </div>
+      <div class="text-xs font-mono text-slate-600 space-y-1">
+        <div>SHA: {{ record.commit_sha or '—' }}</div>
+        <div class="truncate" title="{{ record.git_ssh_url }}">Remote: {{ record.git_ssh_url or '—' }}</div>
+        <div>Config: {{ record.pipeline_config_source or 'pending' }}</div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl p-5 space-y-2.5">
+      <h2 class="text-xs font-semibold text-slate-500">Workspace &amp; Cleanup Audit</h2>
+      <div class="text-sm font-medium {% if record.cleanup_verified %}text-emerald-700{% else %}text-amber-700{% endif %}">
+        {% if record.cleanup_verified %}
+          Temporary workspace securely deleted
+        {% else %}
+          Cleanup pending or unverified
+        {% endif %}
+      </div>
+      <div class="text-xs font-mono text-slate-600 space-y-1">
+        <div class="truncate" title="{{ record.temp_workspace_path }}">
+          Workspace: {{ record.temp_workspace_path or '—' }}
+        </div>
+        <div class="tabular-nums">Clone time: {{ record.clone_duration_ms | duration_fmt }}</div>
+        <div class="tabular-nums">Total time: {{ record.total_duration_ms | duration_fmt }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline Step Output Logs -->
+  <section class="bg-white border border-slate-200 rounded-xl overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-4">
+      <div>
+        <h2 class="font-display text-base font-semibold text-slate-900">Pipeline Step Logs</h2>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Executed sequentially inside the temporary SSH-cloned repository.
+        </p>
+      </div>
+      <span class="font-mono tabular-nums text-xs text-slate-500">{{ record.steps | length }} steps</span>
+    </div>
+
+    {% if record.steps %}
+      <div class="divide-y divide-slate-200">
+        {% for step in record.steps %}
+          <div class="p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="flex items-center gap-3">
+                <span class="font-mono tabular-nums text-xs text-slate-400">0{{ step.step_index }}</span>
+                <span class="text-sm font-semibold text-slate-900">{{ step.name }}</span>
+                {% if step.status == 'succeeded' %}
+                  <span class="text-xs font-medium text-emerald-700">Exit 0</span>
+                {% else %}
+                  <span class="text-xs font-medium text-rose-700">Exit {{ step.exit_code }}</span>
+                {% endif %}
+              </div>
+              <span class="font-mono tabular-nums text-xs text-slate-500">{{ step.duration_ms | duration_fmt }}</span>
+            </div>
+
+            <div class="mb-3 text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 overflow-x-auto">
+              $ {{ step.command }}
+            </div>
+
+            {% if step.stdout or step.stderr %}
+              <div class="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-xs leading-relaxed overflow-x-auto space-y-2">
+                {% if step.stdout %}
+                  <pre class="whitespace-pre-wrap break-words">{{ step.stdout }}</pre>
+                {% endif %}
+                {% if step.stderr %}
+                  <pre class="whitespace-pre-wrap break-words text-rose-300">{{ step.stderr }}</pre>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-6 text-sm text-slate-500">
+        {% if record.status.value in ['queued', 'cloning', 'running'] %}
+          Pipeline execution is currently in progress. This view refreshes automatically.
+        {% else %}
+          No pipeline steps were recorded for this run.
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Changed Files & Commits -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <section class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="font-display text-base font-semibold text-slate-900">Changed Files</h2>
+        <span class="font-mono tabular-nums text-xs text-slate-500">{{ record.changed_files | length }} files</span>
+      </div>
+      {% if record.changed_files %}
+        <div class="divide-y divide-slate-200 max-h-80 overflow-y-auto">
+          {% for file in record.changed_files %}
+            <div class="px-5 py-2.5 flex items-center justify-between gap-4 text-xs">
+              <span class="font-mono text-slate-800 break-all">{{ file.path }}</span>
+              <span class="font-medium shrink-0 {% if file.change_type == 'added' %}text-emerald-700{% elif file.change_type == 'removed' %}text-rose-700{% else %}text-amber-700{% endif %}">
+                {{ file.change_type }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="p-5 text-sm text-slate-500">No changed file paths reported.</div>
+      {% endif %}
+    </section>
+
+    <section class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="font-display text-base font-semibold text-slate-900">Commits</h2>
+        <span class="font-mono tabular-nums text-xs text-slate-500">{{ record.commits | length }} commits</span>
+      </div>
+      {% if record.commits %}
+        <div class="divide-y divide-slate-200 max-h-80 overflow-y-auto">
+          {% for c in record.commits %}
+            <div class="px-5 py-3 text-xs space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium text-slate-900">{{ c.title }}</span>
+                <span class="font-mono tabular-nums text-slate-500 shrink-0">{{ c.short_sha }}</span>
+              </div>
+              <div class="text-slate-500">
+                {{ c.author_name }}{% if c.author_email %} &lt;{{ c.author_email }}&gt;{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="p-5 text-sm text-slate-500">No individual commit records in payload.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Extracted GitLab Variables Table -->
+  <section class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <h2 class="font-display text-base font-semibold text-slate-900">Extracted GitLab Variables</h2>
+        <p class="text-xs text-slate-500 mt-0.5">
+          All environment variables exported to pipeline scripts and logged for auditability.
+        </p>
+      </div>
+      <input
+        type="search"
+        id="var-filter-input"
+        oninput="filterVariables(this.value)"
+        placeholder="Filter variable name or value..."
+        class="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400"
+      />
+    </div>
+    <div class="overflow-x-auto max-h-96 overflow-y-auto">
+      <table class="w-full text-left border-collapse" id="variables-table">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
+            <th class="py-2.5 px-5 w-1/3">Variable Name</th>
+            <th class="py-2.5 px-5">Value</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 font-mono text-xs">
+          {% for key, val in sorted_variables %}
+            <tr class="var-row hover:bg-slate-50">
+              <td class="py-2 px-5 text-slate-700 font-medium align-top whitespace-nowrap">{{ key }}</td>
+              <td class="py-2 px-5 text-slate-600 break-all">{{ val or '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    function filterVariables(query) {
+      const q = (query || "").toLowerCase();
+      document.querySelectorAll(".var-row").forEach((row) => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+      });
+    }
+
+    {% if record.status.value in ['queued', 'cloning', 'running'] %}
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    {% endif %}
+  </script>
+{% endblock %}

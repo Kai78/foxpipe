@@ -1,0 +1,1312 @@
+{% extends "base.html" %}
+{% from "partials/brand_logo.html" import render_brand_logo %}
+
+{% block header_action %}
+  <a
+    href="/"
+    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors whitespace-nowrap shrink-0"
+  >
+    Back to Executions
+  </a>
+{% endblock %}
+
+{% block content %}
+  <div class="mb-6">
+    <h1 class="font-display text-2xl font-bold tracking-tight text-slate-900">Configuration &amp; Security</h1>
+    <p class="mt-1 text-sm text-slate-600">
+      Navigate configuration sections in the tree to manage branding, local users, LDAP directory authentication, GitLab webhooks, SSH keys, pipeline workers, and SQLite audit storage.
+    </p>
+  </div>
+
+  {% if notice %}
+    <div class="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800">
+      {{ notice }}
+    </div>
+  {% endif %}
+  {% if error %}
+    <div class="mb-6 bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-800">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <!-- Standalone form target for config.yaml General / Webhook / SSH / Pipeline / Storage sections -->
+  <form id="general-config-form" method="post" action="/config/save" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <input type="hidden" name="active_section" id="general_active_section" value="{{ active_section }}" />
+  </form>
+
+  <div class="w-full space-y-6">
+    <!-- SECTION: GENERAL & BRANDING -->
+      <div data-config-section="branding" class="config-section-panel space-y-6">
+        <section id="branding-logo-card" class="bg-white border border-slate-200 rounded-xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+            <div>
+              <h2 class="font-display text-base font-semibold text-slate-900">Branding &amp; Logo</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                Customize the brand title, sign-in subtitle, and header/login logo. Leave logo fields blank to use the built-in default mark.
+              </p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2">
+              {{ render_brand_logo(config.branding, "w-9 h-9") }}
+              <div class="min-w-0">
+                <div class="font-display text-sm font-semibold text-slate-900 truncate max-w-[12rem]">{{ config.branding.brand_name }}</div>
+                <div class="text-xs text-slate-500 truncate max-w-[12rem]">
+                  {% if config.branding.logo_path %}Custom logo active{% else %}Default logo active{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form method="post" action="/config/branding" enctype="multipart/form-data" class="mt-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="brand_name" class="block text-xs font-medium text-slate-700 mb-1">Brand Name (Header &amp; Login)</label>
+                <input
+                  id="brand_name"
+                  name="brand_name"
+                  type="text"
+                  value="{{ config.branding.brand_name }}"
+                  required
+                  maxlength="80"
+                  placeholder="Pipeline Runner"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label for="login_subtitle" class="block text-xs font-medium text-slate-700 mb-1">Login Page Subtitle</label>
+                <input
+                  id="login_subtitle"
+                  name="login_subtitle"
+                  type="text"
+                  value="{{ config.branding.login_subtitle }}"
+                  maxlength="120"
+                  placeholder="GitLab SSH Pipeline Runner"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label for="logo_url" class="block text-xs font-medium text-slate-700 mb-1">Custom Logo URL (optional)</label>
+                <input
+                  id="logo_url"
+                  name="logo_url"
+                  type="text"
+                  value="{{ config.branding.logo_path }}"
+                  placeholder="https://example.com/logo.png"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label for="logo_file" class="block text-xs font-medium text-slate-700 mb-1">Or Upload Raster Logo (PNG, JPG, WEBP, ICO · max 2 MB)</label>
+                <input
+                  id="logo_file"
+                  name="logo_file"
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon"
+                  class="w-full px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg text-slate-700 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200"
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+              <label class="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="reset_logo" class="rounded border-slate-300" />
+                <span>Reset to built-in default logo</span>
+              </label>
+
+              <button
+                type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                Save Branding
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section id="branding-app-card" class="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+          <div class="pb-3 border-b border-slate-200">
+            <h2 class="font-display text-base font-semibold text-slate-900">Application Title &amp; Simulator</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Runtime title stored in <code class="font-mono">config.yaml</code> and local repository test simulator toggle.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label for="app_title" class="block text-xs font-medium text-slate-700 mb-1">Application Title</label>
+              <input
+                id="app_title"
+                name="app_title"
+                form="general-config-form"
+                type="text"
+                value="{{ config.server.app_title }}"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+            <label class="flex items-center gap-2.5 text-sm text-slate-700 py-2">
+              <input type="checkbox" name="enable_local_simulator" form="general-config-form" class="rounded border-slate-300" {% if config.webhook.enable_local_simulator %}checked{% endif %} />
+              <span>Enable local webhook simulator</span>
+            </label>
+          </div>
+          <div class="flex justify-end pt-2 border-t border-slate-200">
+            <button
+              type="submit"
+              form="general-config-form"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+            >
+              Save General Settings
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION: SECURITY (LOCAL USERS + AUTH POLICY + LDAP) -->
+      <div data-config-section="security" class="config-section-panel space-y-6">
+        <!-- Local Users & Passwords -->
+        <section id="security-users-card" class="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+          <div class="pb-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h2 class="font-display text-base font-semibold text-slate-900">Local Users &amp; Passwords</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                Create and manage local dashboard accounts with salted <code class="font-mono">scrypt</code> password hashes stored in SQLite.
+              </p>
+            </div>
+            <span class="font-mono tabular-nums text-xs text-slate-500">{{ local_users | length }} local user(s)</span>
+          </div>
+
+          <form method="post" action="/config/security/users/add" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <div class="text-xs font-semibold text-slate-700">Add Local User</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label for="new_local_username" class="block text-xs font-medium text-slate-700 mb-1">Username</label>
+                <input
+                  id="new_local_username"
+                  name="username"
+                  type="text"
+                  pattern="[A-Za-z0-9._-]{2,64}"
+                  placeholder="jdoe"
+                  autocomplete="off"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label for="new_local_display_name" class="block text-xs font-medium text-slate-700 mb-1">Display Name</label>
+                <input
+                  id="new_local_display_name"
+                  name="display_name"
+                  type="text"
+                  maxlength="80"
+                  placeholder="Jane Doe"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label for="new_local_email" class="block text-xs font-medium text-slate-700 mb-1">Email (optional)</label>
+                <input
+                  id="new_local_email"
+                  name="email"
+                  type="email"
+                  maxlength="120"
+                  placeholder="jane@example.com"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label for="new_local_role" class="block text-xs font-medium text-slate-700 mb-1">Role</label>
+                <select
+                  id="new_local_role"
+                  name="role"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900"
+                >
+                  <option value="operator">operator</option>
+                  <option value="admin">admin</option>
+                </select>
+              </div>
+              <div>
+                <label for="new_local_password" class="block text-xs font-medium text-slate-700 mb-1">Password (min 8 chars)</label>
+                <input
+                  id="new_local_password"
+                  name="password"
+                  type="password"
+                  minlength="8"
+                  autocomplete="new-password"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label for="new_local_confirm_password" class="block text-xs font-medium text-slate-700 mb-1">Confirm Password</label>
+                <input
+                  id="new_local_confirm_password"
+                  name="confirm_password"
+                  type="password"
+                  minlength="8"
+                  autocomplete="new-password"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button
+                type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                Add Local User
+              </button>
+            </div>
+          </form>
+
+          {% if local_users %}
+            <div class="pt-4 border-t border-slate-200 overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 text-xs font-medium text-slate-500">
+                    <th class="py-2.5 pr-4">Username</th>
+                    <th class="py-2.5 px-4">User Details</th>
+                    <th class="py-2.5 px-4">Role</th>
+                    <th class="py-2.5 px-4">Status</th>
+                    <th class="py-2.5 pl-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-sm">
+                  {% for u in local_users %}
+                    <tr>
+                      <td class="py-3 pr-4 font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                        {{ u.username }}
+                        {% if current_user and u.username | lower == current_user.username | lower %}
+                          <span class="text-[11px] font-sans font-normal text-slate-400"> (you)</span>
+                        {% endif %}
+                      </td>
+                      <td class="py-3 px-4">
+                        <div class="text-xs font-medium text-slate-900">{{ u.display_name }}</div>
+                        {% if u.email %}
+                          <div class="text-xs text-slate-500">{{ u.email }}</div>
+                        {% endif %}
+                      </td>
+                      <td class="py-3 px-4 font-mono text-xs text-slate-700 whitespace-nowrap">{{ u.role }}</td>
+                      <td class="py-3 px-4 whitespace-nowrap text-xs">
+                        {% if u.is_active %}
+                          <span class="font-medium text-emerald-700">Active</span>
+                        {% else %}
+                          <span class="font-medium text-slate-400">Disabled</span>
+                        {% endif %}
+                      </td>
+                      <td class="py-3 pl-4 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            onclick="togglePasswordResetRow('pw-reset-{{ loop.index }}')"
+                            class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors"
+                          >
+                            Reset Password
+                          </button>
+                          <form method="post" action="/config/security/users/{{ u.username | urlencode }}/toggle" class="inline-block">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            <button
+                              type="submit"
+                              class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors"
+                            >
+                              {% if u.is_active %}Disable{% else %}Enable{% endif %}
+                            </button>
+                          </form>
+                          <form method="post" action="/config/security/users/{{ u.username | urlencode }}/delete" class="inline-block">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            <button
+                              type="submit"
+                              class="px-2.5 py-1 text-xs font-medium text-rose-700 bg-white border border-rose-200 hover:bg-rose-50 rounded-md transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr id="pw-reset-{{ loop.index }}" class="hidden bg-slate-50/70">
+                      <td colspan="5" class="py-3 px-4">
+                        <form method="post" action="/config/security/users/{{ u.username | urlencode }}/password" class="flex flex-wrap items-center gap-3">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                          <span class="text-xs font-medium text-slate-700">New password for <code class="font-mono">{{ u.username }}</code>:</span>
+                          <input
+                            name="new_password"
+                            type="password"
+                            minlength="8"
+                            placeholder="New password (min 8)"
+                            autocomplete="new-password"
+                            class="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md text-slate-900"
+                          />
+                          <input
+                            name="confirm_password"
+                            type="password"
+                            minlength="8"
+                            placeholder="Confirm password"
+                            autocomplete="new-password"
+                            class="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md text-slate-900"
+                          />
+                          <button
+                            type="submit"
+                            class="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md transition-colors"
+                          >
+                            Update Password
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </section>
+
+        <!-- Authentication Policy & LDAP Settings (part of Security & Configuration) -->
+        <section id="security-ldap-card" class="bg-white border border-slate-200 rounded-xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+            <div>
+              <h2 class="font-display text-base font-semibold text-slate-900">Authentication Policy &amp; LDAP Directory</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                Modify dashboard sign-in enforcement, local account fallback, and LDAP / Active Directory bind settings in <code class="font-mono">config.yaml</code>.
+              </p>
+            </div>
+            <form method="post" action="/config/ldap/test" class="shrink-0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button
+                type="submit"
+                class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Test LDAP Connection
+              </button>
+            </form>
+          </div>
+
+          <form method="post" action="/config/ldap" class="mt-5 space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label class="flex items-center gap-2.5 text-sm text-slate-800">
+                <input type="checkbox" name="auth_enabled" class="rounded border-slate-300" {% if config.auth.enabled %}checked{% endif %} />
+                <span>Require dashboard login</span>
+              </label>
+              <label class="flex items-center gap-2.5 text-sm text-slate-800">
+                <input type="checkbox" name="ldap_enabled" class="rounded border-slate-300" {% if config.auth.ldap.enabled %}checked{% endif %} />
+                <span>Enable LDAP authentication</span>
+              </label>
+              <label class="flex items-center gap-2.5 text-sm text-slate-800">
+                <input type="checkbox" name="allow_local_fallback" class="rounded border-slate-300" {% if config.auth.allow_local_fallback %}checked{% endif %} />
+                <span>Allow local users fallback</span>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label for="ldap_server_uri" class="block text-xs font-medium text-slate-700 mb-1">LDAP Server URI</label>
+                <input
+                  id="ldap_server_uri"
+                  name="server_uri"
+                  type="text"
+                  value="{{ config.auth.ldap.server_uri }}"
+                  required
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_auth_mode" class="block text-xs font-medium text-slate-700 mb-1">LDAP Bind Mode</label>
+                <select
+                  id="ldap_auth_mode"
+                  name="auth_mode"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900"
+                >
+                  <option value="direct_bind" {% if config.auth.ldap.auth_mode == 'direct_bind' %}selected{% endif %}>direct_bind (DN template)</option>
+                  <option value="search_bind" {% if config.auth.ldap.auth_mode == 'search_bind' %}selected{% endif %}>search_bind (service lookup + bind)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="ldap_base_dn" class="block text-xs font-medium text-slate-700 mb-1">Base DN</label>
+                <input
+                  id="ldap_base_dn"
+                  name="base_dn"
+                  type="text"
+                  value="{{ config.auth.ldap.base_dn }}"
+                  required
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_user_dn_template" class="block text-xs font-medium text-slate-700 mb-1">User DN Template (direct_bind)</label>
+                <input
+                  id="ldap_user_dn_template"
+                  name="user_dn_template"
+                  type="text"
+                  value="{{ config.auth.ldap.user_dn_template }}"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_bind_dn" class="block text-xs font-medium text-slate-700 mb-1">Service Bind DN (search_bind)</label>
+                <input
+                  id="ldap_bind_dn"
+                  name="bind_dn"
+                  type="text"
+                  value="{{ config.auth.ldap.bind_dn }}"
+                  placeholder="cn=svc-pipeline,ou=service,dc=example,dc=com"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_bind_password_env" class="block text-xs font-medium text-slate-700 mb-1">Bind Password Env Var</label>
+                <input
+                  id="ldap_bind_password_env"
+                  name="bind_password_env"
+                  type="text"
+                  value="{{ config.auth.ldap.bind_password_env }}"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_user_search_filter" class="block text-xs font-medium text-slate-700 mb-1">User Search Filter</label>
+                <input
+                  id="ldap_user_search_filter"
+                  name="user_search_filter"
+                  type="text"
+                  value="{{ config.auth.ldap.user_search_filter }}"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="ldap_allowed_group_dn" class="block text-xs font-medium text-slate-700 mb-1">Required Group DN (optional)</label>
+                <input
+                  id="ldap_allowed_group_dn"
+                  name="allowed_group_dn"
+                  type="text"
+                  value="{{ config.auth.ldap.allowed_group_dn }}"
+                  placeholder="cn=devops,ou=groups,dc=example,dc=com"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="ldap_timeout" class="block text-xs font-medium text-slate-700 mb-1">Timeout (s)</label>
+                  <input
+                    id="ldap_timeout"
+                    name="timeout_seconds"
+                    type="number"
+                    min="2"
+                    max="60"
+                    value="{{ config.auth.ldap.timeout_seconds }}"
+                    class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label for="session_max_age" class="block text-xs font-medium text-slate-700 mb-1">Session TTL (s)</label>
+                  <input
+                    id="session_max_age"
+                    name="session_max_age_seconds"
+                    type="number"
+                    min="300"
+                    max="604800"
+                    value="{{ config.auth.session_max_age_seconds }}"
+                    class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-200">
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" name="use_ssl" class="rounded border-slate-300" {% if config.auth.ldap.use_ssl %}checked{% endif %} />
+                  <span>Use LDAPS (SSL)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" name="start_tls" class="rounded border-slate-300" {% if config.auth.ldap.start_tls %}checked{% endif %} />
+                  <span>Use StartTLS</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                Save Security &amp; LDAP Settings
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- SECTION: WEBHOOK & EVENTS -->
+      <div data-config-section="webhook" class="config-section-panel space-y-6">
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+          <div class="pb-4 border-b border-slate-200">
+            <h2 class="font-display text-base font-semibold text-slate-900">Webhook &amp; Allowed GitLab Events</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Configure the GitLab secret token, allowed webhook events, and permitted repository hostnames.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="webhook_secret_token" class="block text-xs font-medium text-slate-700 mb-1">
+                Webhook Secret Token (leave blank to keep current)
+              </label>
+              <input
+                id="webhook_secret_token"
+                name="webhook_secret_token"
+                form="general-config-form"
+                type="password"
+                placeholder="{% if config.webhook.secret_token %}•••••••• (configured){% else %}Unset{% endif %}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+              {% if config.webhook.secret_token %}
+                <label class="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-600">
+                  <input type="checkbox" name="clear_webhook_secret" form="general-config-form" class="rounded border-slate-300" />
+                  <span>Clear secret token</span>
+                </label>
+              {% endif %}
+            </div>
+
+            <div>
+              <label for="allowed_repo_hosts" class="block text-xs font-medium text-slate-700 mb-1">Allowed Repo Hosts (empty = all)</label>
+              <input
+                id="allowed_repo_hosts"
+                name="allowed_repo_hosts"
+                form="general-config-form"
+                type="text"
+                value="{{ config.webhook.allowed_repo_hosts | join(', ') }}"
+                placeholder="gitlab.example.com"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="allowed_events_select" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Allowed GitLab Events
+              </label>
+              <input
+                id="allowed_events_input"
+                name="allowed_events"
+                form="general-config-form"
+                type="hidden"
+                value="{{ config.webhook.allowed_events | join(', ') }}"
+              />
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <select
+                  id="allowed_events_select"
+                  onchange="addAllowedEvent(this.value)"
+                  class="w-full sm:w-72 px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  <option value="">Select event to add...</option>
+                  {% set known_events = [
+                    'Push Hook',
+                    'Tag Push Hook',
+                    'Merge Request Hook',
+                    'System Hook',
+                    'Note Hook',
+                    'Pipeline Hook',
+                    'Job Hook',
+                    'Release Hook',
+                    'Deployment Hook',
+                    'Issue Hook',
+                    'Wiki Page Hook'
+                  ] %}
+                  {% for ev in known_events %}
+                    <option value="{{ ev }}">{{ ev }}</option>
+                  {% endfor %}
+                </select>
+                <span class="text-xs text-slate-500">
+                  Select events from the list or remove tags below. Leave empty to permit all GitLab webhook events.
+                </span>
+              </div>
+              <div
+                id="allowed_events_tags"
+                class="mt-2.5 flex flex-wrap items-center gap-2 min-h-[2rem]"
+                aria-live="polite"
+              ></div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-3 border-t border-slate-200">
+            <button
+              type="submit"
+              form="general-config-form"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+            >
+              Save Webhook Settings
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION: SSH & GIT CLONING -->
+      <div data-config-section="ssh" class="config-section-panel space-y-6">
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+          <div>
+            <h2 class="font-display text-base font-semibold text-slate-900">GitLab SSH Deploy Key</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Private key used via <code class="font-mono">GIT_SSH_COMMAND</code> when cloning repositories from GitLab.
+            </p>
+          </div>
+
+          <div class="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1.5">
+            <div>Private Key: {{ config.ssh.private_key_path }} ({% if ssh_status.private_key_exists %}Present · mode {{ ssh_status.permissions }}{% else %}Not generated yet{% endif %})</div>
+            <div>Host Checking: {{ config.ssh.strict_host_key_checking }}</div>
+            {% if ssh_status.fingerprint %}
+              <div class="break-all">Fingerprint: {{ ssh_status.fingerprint }}</div>
+            {% endif %}
+          </div>
+
+          {% if ssh_status.public_key %}
+            <div>
+              <div class="text-xs font-medium text-slate-700 mb-1.5">Public Key (add to GitLab Deploy Keys)</div>
+              <pre class="p-3 bg-slate-900 text-slate-100 rounded-lg font-mono text-xs overflow-x-auto whitespace-pre-wrap break-all">{{ ssh_status.public_key }}</pre>
+            </div>
+          {% else %}
+            <form method="post" action="/config/ssh-key">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button
+                type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                Generate Ed25519 SSH Keypair
+              </button>
+            </form>
+          {% endif %}
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+          <div class="pb-4 border-b border-slate-200">
+            <h2 class="font-display text-base font-semibold text-slate-900">SSH Paths &amp; Clone Options</h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label for="ssh_private_key_path" class="block text-xs font-medium text-slate-700 mb-1">SSH Private Key Path</label>
+              <input
+                id="ssh_private_key_path"
+                name="ssh_private_key_path"
+                form="general-config-form"
+                type="text"
+                value="{{ config.ssh.private_key_path }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="ssh_known_hosts_path" class="block text-xs font-medium text-slate-700 mb-1">SSH Known Hosts Path</label>
+              <input
+                id="ssh_known_hosts_path"
+                name="ssh_known_hosts_path"
+                form="general-config-form"
+                type="text"
+                value="{{ config.ssh.known_hosts_path }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="strict_host_key_checking" class="block text-xs font-medium text-slate-700 mb-1">StrictHostKeyChecking</label>
+              <select
+                id="strict_host_key_checking"
+                name="strict_host_key_checking"
+                form="general-config-form"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900"
+              >
+                <option value="accept-new" {% if config.ssh.strict_host_key_checking == 'accept-new' %}selected{% endif %}>accept-new</option>
+                <option value="yes" {% if config.ssh.strict_host_key_checking == 'yes' %}selected{% endif %}>yes</option>
+                <option value="no" {% if config.ssh.strict_host_key_checking == 'no' %}selected{% endif %}>no</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="clone_timeout_seconds" class="block text-xs font-medium text-slate-700 mb-1">Clone Timeout (s)</label>
+              <input
+                id="clone_timeout_seconds"
+                name="clone_timeout_seconds"
+                form="general-config-form"
+                type="number"
+                min="10"
+                max="3600"
+                value="{{ config.ssh.clone_timeout_seconds }}"
+                class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="clone_depth" class="block text-xs font-medium text-slate-700 mb-1">Git Clone Depth (0 = full)</label>
+              <input
+                id="clone_depth"
+                name="clone_depth"
+                form="general-config-form"
+                type="number"
+                min="0"
+                max="1000"
+                value="{{ config.ssh.clone_depth }}"
+                class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-3 border-t border-slate-200">
+            <button
+              type="submit"
+              form="general-config-form"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+            >
+              Save SSH Settings
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION: PIPELINE & WORKERS -->
+      <div data-config-section="pipeline" class="config-section-panel space-y-6">
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+          <div class="pb-4 border-b border-slate-200">
+            <h2 class="font-display text-base font-semibold text-slate-900">Pipeline Execution &amp; Worker Pool</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Control temporary workspace isolation, repository pipeline config filenames, background concurrency, and secure cleanup.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label for="temp_base_dir" class="block text-xs font-medium text-slate-700 mb-1">Temp Workspace Base Dir</label>
+              <input
+                id="temp_base_dir"
+                name="temp_base_dir"
+                form="general-config-form"
+                type="text"
+                value="{{ config.pipeline.temp_base_dir }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="repo_config_filename" class="block text-xs font-medium text-slate-700 mb-1">Repo Pipeline Config Filename</label>
+              <input
+                id="repo_config_filename"
+                name="repo_config_filename"
+                form="general-config-form"
+                type="text"
+                value="{{ config.pipeline.repo_config_filename }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="fallback_config_filenames" class="block text-xs font-medium text-slate-700 mb-1">Fallback Config Filenames</label>
+              <input
+                id="fallback_config_filenames"
+                name="fallback_config_filenames"
+                form="general-config-form"
+                type="text"
+                value="{{ config.pipeline.fallback_config_filenames | join(', ') }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="step_timeout_seconds" class="block text-xs font-medium text-slate-700 mb-1">Step Timeout (s)</label>
+              <input
+                id="step_timeout_seconds"
+                name="step_timeout_seconds"
+                form="general-config-form"
+                type="number"
+                min="10"
+                max="7200"
+                value="{{ config.pipeline.step_timeout_seconds }}"
+                class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="max_background_workers" class="block text-xs font-medium text-slate-700 mb-1">Background Worker Threads</label>
+              <input
+                id="max_background_workers"
+                name="max_background_workers"
+                form="general-config-form"
+                type="number"
+                min="1"
+                max="32"
+                value="{{ config.pipeline.max_background_workers }}"
+                class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="default_scripts_lines" class="block text-xs font-medium text-slate-700 mb-1">
+              Fallback Default Scripts (one per line: <code class="font-mono">Step Name :: command</code>)
+            </label>
+            <textarea
+              id="default_scripts_lines"
+              name="default_scripts_lines"
+              form="general-config-form"
+              rows="4"
+              class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+            >{{ default_scripts_text }}</textarea>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-200">
+            <label class="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="secure_cleanup" form="general-config-form" class="rounded border-slate-300" {% if config.pipeline.secure_cleanup %}checked{% endif %} />
+              <span>Secure workspace cleanup after execution</span>
+            </label>
+
+            <button
+              type="submit"
+              form="general-config-form"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+            >
+              Save Pipeline Settings
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION: STORAGE & LOGGING -->
+      <div data-config-section="storage" class="config-section-panel space-y-6">
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+          <div>
+            <h2 class="font-display text-base font-semibold text-slate-900">Audit Database Vendor &amp; Connection</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Defaults to embedded SQLite inside <code class="font-mono">{{ config.database.allowed_dir }}/</code>. You may switch to PostgreSQL or MariaDB at runtime; passwords are read securely from your environment variable and never stored in <code class="font-mono">config.yaml</code>.
+            </p>
+          </div>
+
+          <div class="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+            <div>Active vendor: {{ db_info.engine }} · Target: {{ db_info.path }}</div>
+            <div class="tabular-nums">Size: {{ db_info.size_human }} · Rows: {{ db_info.row_count }}{% if db_info.engine == 'sqlite' %} · WAL: {{ db_info.wal_mode }}{% endif %}</div>
+          </div>
+
+          <form method="post" action="/config/database" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="db_engine_select" class="block text-xs font-medium text-slate-700 mb-1">Database Vendor</label>
+                <select
+                  id="db_engine_select"
+                  name="engine"
+                  onchange="syncDatabaseVendorUI(true)"
+                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  <option value="sqlite" {% if config.database.engine == 'sqlite' %}selected{% endif %}>SQLite (Default)</option>
+                  <option value="postgresql" {% if config.database.engine == 'postgresql' %}selected{% endif %}>PostgreSQL</option>
+                  <option value="mariadb" {% if config.database.engine == 'mariadb' %}selected{% endif %}>MariaDB / MySQL</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col justify-end text-xs text-slate-600 space-y-1 pb-1">
+                <div>
+                  <span class="font-medium text-slate-700">Driver status:</span>
+                  <span id="db_driver_status_text" class="font-mono">
+                    {% if config.database.engine == 'postgresql' %}
+                      {{ db_driver_status.postgresql[1] }}
+                    {% elif config.database.engine == 'mariadb' %}
+                      {{ db_driver_status.mariadb[1] }}
+                    {% else %}
+                      {{ db_driver_status.sqlite[1] }}
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SQLite Settings -->
+            <div id="db-sqlite-fields" class="space-y-3 {% if config.database.engine != 'sqlite' %}hidden{% endif %}">
+              <div>
+                <label for="sqlite_path" class="block text-xs font-medium text-slate-700 mb-1">SQLite Database File Path</label>
+                <input
+                  id="sqlite_path"
+                  name="sqlite_path"
+                  type="text"
+                  value="{{ config.database.sqlite_path }}"
+                  placeholder="data/pipeline_audit.db"
+                  class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                />
+              </div>
+              {% if available_dbs %}
+                <div class="text-xs text-slate-500">
+                  Existing files:
+                  {% for db_file in available_dbs %}
+                    <button
+                      type="button"
+                      onclick="document.getElementById('sqlite_path').value='{{ db_file }}'"
+                      class="font-mono text-blue-700 hover:underline mr-2"
+                    >{{ db_file }}</button>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- PostgreSQL / MariaDB Connection Settings -->
+            <div id="db-remote-fields" class="space-y-4 {% if config.database.engine == 'sqlite' %}hidden{% endif %}">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                  <label for="db_host" class="block text-xs font-medium text-slate-700 mb-1">Database Host</label>
+                  <input
+                    id="db_host"
+                    name="host"
+                    type="text"
+                    value="{{ config.database.host }}"
+                    placeholder="127.0.0.1"
+                    class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label for="db_port" class="block text-xs font-medium text-slate-700 mb-1">Port</label>
+                  <input
+                    id="db_port"
+                    name="port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value="{{ config.database.port }}"
+                    class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label for="db_name" class="block text-xs font-medium text-slate-700 mb-1">Database Name</label>
+                  <input
+                    id="db_name"
+                    name="name"
+                    type="text"
+                    value="{{ config.database.name }}"
+                    placeholder="pipeline_audit"
+                    class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label for="db_user_name" class="block text-xs font-medium text-slate-700 mb-1">Database Username</label>
+                  <input
+                    id="db_user_name"
+                    name="user_name"
+                    type="text"
+                    value="{{ config.database.user }}"
+                    placeholder="pipeline_runner"
+                    class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label for="db_password_env" class="block text-xs font-medium text-slate-700 mb-1">Password Env Variable</label>
+                  <input
+                    id="db_password_env"
+                    name="password_env"
+                    type="text"
+                    value="{{ config.database.password_env }}"
+                    placeholder="RUNNER_DB_PASSWORD"
+                    class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label for="db_ssl_mode" class="block text-xs font-medium text-slate-700 mb-1">SSL / TLS Mode</label>
+                  <select
+                    id="db_ssl_mode"
+                    name="ssl_mode"
+                    class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+                  >
+                    {% for mode in ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] %}
+                      <option value="{{ mode }}" {% if config.database.ssl_mode == mode %}selected{% endif %}>{{ mode }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div>
+                  <label for="db_connect_timeout" class="block text-xs font-medium text-slate-700 mb-1">Connect Timeout (s)</label>
+                  <input
+                    id="db_connect_timeout"
+                    name="connect_timeout_seconds"
+                    type="number"
+                    min="2"
+                    max="60"
+                    value="{{ config.database.connect_timeout_seconds }}"
+                    class="w-full px-3 py-2 text-sm font-mono tabular-nums bg-white border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
+              </div>
+              <p class="text-xs text-slate-500">
+                Ensure <code class="font-mono">{{ config.database.password_env }}</code> is set in the service environment (e.g. <code class="font-mono">runner.env</code>) and the target database exists before switching. Tables are initialized automatically on first connect.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-200">
+              <button
+                type="submit"
+                name="action"
+                value="test"
+                class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Test Connection
+              </button>
+              <button
+                type="submit"
+                name="action"
+                value="switch"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                Apply &amp; Switch Database
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+          <div class="pb-4 border-b border-slate-200">
+            <h2 class="font-display text-base font-semibold text-slate-900">Rotating Logfile &amp; SQLite Journal</h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="log_file" class="block text-xs font-medium text-slate-700 mb-1">Logfile Path</label>
+              <input
+                id="log_file"
+                name="log_file"
+                form="general-config-form"
+                type="text"
+                value="{{ config.logging.log_file }}"
+                class="w-full px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="log_level" class="block text-xs font-medium text-slate-700 mb-1">Log Level</label>
+              <select
+                id="log_level"
+                name="log_level"
+                form="general-config-form"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900"
+              >
+                {% for lvl in ['DEBUG', 'INFO', 'WARNING', 'ERROR'] %}
+                  <option value="{{ lvl }}" {% if config.logging.level == lvl %}selected{% endif %}>{{ lvl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-200">
+            <label class="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="wal_mode" form="general-config-form" class="rounded border-slate-300" {% if config.database.wal_mode %}checked{% endif %} />
+              <span>SQLite WAL mode</span>
+            </label>
+
+            <button
+              type="submit"
+              form="general-config-form"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
+            >
+              Save Logging Settings
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- SECTION: EFFECTIVE YAML INSPECTOR -->
+      <div data-config-section="yaml" class="config-section-panel">
+        <section class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+            <div>
+              <h2 class="font-display text-base font-semibold text-slate-900">Effective YAML Configuration</h2>
+              <p class="text-xs text-slate-500 mt-0.5 font-mono">{{ config.config_path }}</p>
+            </div>
+            <span class="text-xs font-mono text-slate-500">
+              Webhook Token: {% if config.webhook.secret_token %}Configured{% else %}Unset (open){% endif %}
+            </span>
+          </div>
+          <pre class="p-5 bg-slate-900 text-slate-100 font-mono text-xs leading-relaxed overflow-x-auto">{{ config_yaml_text }}</pre>
+        </section>
+      </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    let activeSectionState = {{ active_section | tojson }};
+    const allowedEventsState = {{ config.webhook.allowed_events | tojson }};
+
+    function selectConfigSection(sectionName, anchorId) {
+      activeSectionState = sectionName || "branding";
+      const hiddenSectionInput = document.getElementById("general_active_section");
+      if (hiddenSectionInput) {
+        hiddenSectionInput.value = activeSectionState === "all" ? "branding" : activeSectionState;
+      }
+
+      document.querySelectorAll(".config-section-panel").forEach((panel) => {
+        const panelKey = panel.getAttribute("data-config-section");
+        const visible = activeSectionState === "all" || panelKey === activeSectionState;
+        panel.classList.toggle("hidden", !visible);
+      });
+
+      document.querySelectorAll(".tree-node-btn").forEach((btn) => {
+        const list = (btn.getAttribute("data-tree-sections") || "").split(",").filter(Boolean);
+        const isCurrent = list.includes(activeSectionState);
+        btn.classList.toggle("bg-slate-200/80", isCurrent);
+        btn.classList.toggle("text-slate-900", isCurrent);
+        btn.classList.toggle("text-slate-700", !isCurrent);
+        btn.classList.toggle("hover:bg-slate-100", !isCurrent);
+      });
+
+      let matchedFirstForSection = false;
+      document.querySelectorAll(".tree-leaf-btn").forEach((btn) => {
+        const btnSec = btn.getAttribute("data-tree-section");
+        const btnAnchor = btn.getAttribute("data-anchor") || "";
+        let isCurrent = false;
+        if (btnSec === activeSectionState) {
+          if (anchorId) {
+            isCurrent = btnAnchor === anchorId;
+          } else if (!matchedFirstForSection) {
+            isCurrent = true;
+            matchedFirstForSection = true;
+          }
+        }
+        btn.classList.toggle("bg-blue-50", isCurrent);
+        btn.classList.toggle("text-blue-800", isCurrent);
+        btn.classList.toggle("font-medium", isCurrent);
+        btn.classList.toggle("text-slate-600", !isCurrent);
+      });
+
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("section", activeSectionState);
+        if (anchorId) {
+          url.hash = anchorId;
+        } else {
+          url.hash = "";
+        }
+        window.history.replaceState({}, "", url.toString());
+      } catch (_err) {}
+
+      if (anchorId) {
+        const target = document.getElementById(anchorId);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    }
+
+    function togglePasswordResetRow(rowId) {
+      const row = document.getElementById(rowId);
+      if (row) {
+        row.classList.toggle("hidden");
+      }
+    }
+
+    function syncAllowedEventsUI() {
+      const hiddenInput = document.getElementById("allowed_events_input");
+      const tagsContainer = document.getElementById("allowed_events_tags");
+      const selectEl = document.getElementById("allowed_events_select");
+      if (!hiddenInput || !tagsContainer || !selectEl) return;
+
+      hiddenInput.value = allowedEventsState.join(", ");
+      tagsContainer.replaceChildren();
+
+      if (allowedEventsState.length === 0) {
+        const emptyHint = document.createElement("span");
+        emptyHint.className = "text-xs font-mono text-slate-400";
+        emptyHint.textContent = "All GitLab webhook events allowed";
+        tagsContainer.appendChild(emptyHint);
+      } else {
+        allowedEventsState.forEach((evName) => {
+          const tag = document.createElement("span");
+          tag.className =
+            "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono bg-slate-100 border border-slate-300 rounded-md text-slate-800 whitespace-nowrap shrink-0";
+
+          const label = document.createElement("span");
+          label.textContent = evName;
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className =
+            "ml-0.5 text-slate-500 hover:text-rose-700 font-sans text-sm leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded";
+          removeBtn.setAttribute("aria-label", "Remove " + evName);
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", () => removeAllowedEvent(evName));
+
+          tag.appendChild(label);
+          tag.appendChild(removeBtn);
+          tagsContainer.appendChild(tag);
+        });
+      }
+
+      Array.from(selectEl.options).forEach((opt) => {
+        if (!opt.value) return;
+        opt.disabled = allowedEventsState.includes(opt.value);
+      });
+    }
+
+    function addAllowedEvent(value) {
+      const cleaned = (value || "").trim();
+      const selectEl = document.getElementById("allowed_events_select");
+      if (cleaned && !allowedEventsState.includes(cleaned)) {
+        allowedEventsState.push(cleaned);
+        syncAllowedEventsUI();
+      }
+      if (selectEl) {
+        selectEl.value = "";
+      }
+    }
+
+    function removeAllowedEvent(value) {
+      const idx = allowedEventsState.indexOf(value);
+      if (idx !== -1) {
+        allowedEventsState.splice(idx, 1);
+        syncAllowedEventsUI();
+      }
+    }
+
+    const dbDriverStatusMap = {
+      sqlite: {{ db_driver_status.sqlite[1] | tojson }},
+      postgresql: {{ db_driver_status.postgresql[1] | tojson }},
+      mariadb: {{ db_driver_status.mariadb[1] | tojson }},
+    };
+
+    function syncDatabaseVendorUI(updateDefaultPort) {
+      const selectEl = document.getElementById("db_engine_select");
+      const sqliteFields = document.getElementById("db-sqlite-fields");
+      const remoteFields = document.getElementById("db-remote-fields");
+      const portInput = document.getElementById("db_port");
+      const statusText = document.getElementById("db_driver_status_text");
+      if (!selectEl || !sqliteFields || !remoteFields) return;
+
+      const engine = selectEl.value || "sqlite";
+      const isSqlite = engine === "sqlite";
+      sqliteFields.classList.toggle("hidden", !isSqlite);
+      remoteFields.classList.toggle("hidden", isSqlite);
+
+      if (updateDefaultPort && portInput) {
+        const curPort = String(portInput.value || "").trim();
+        if (engine === "postgresql" && (curPort === "" || curPort === "3306")) {
+          portInput.value = "5432";
+        } else if (engine === "mariadb" && (curPort === "" || curPort === "5432")) {
+          portInput.value = "3306";
+        }
+      }
+      if (statusText && dbDriverStatusMap[engine]) {
+        statusText.textContent = dbDriverStatusMap[engine];
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      syncAllowedEventsUI();
+      syncDatabaseVendorUI(false);
+      const initialAnchor = window.location.hash ? window.location.hash.slice(1) : "";
+      selectConfigSection(activeSectionState, initialAnchor);
+    });
+  </script>
+{% endblock %}

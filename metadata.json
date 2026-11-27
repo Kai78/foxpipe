@@ -1,0 +1,6 @@
+{
+  "name": "GitLab SSH Pipeline Runner",
+  "description": "Python 3.11 GitLab webhook receiver, SSH repository cloner, background pipeline executor, SQLite audit logger, and Jinja2 + Tailwind CSS dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,50 @@
+[Unit]
+Description=GitLab SSH Pipeline Runner Webservice & Dashboard
+Documentation=https://github.com/fastapi/fastapi
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pipeline-runner
+Group=pipeline-runner
+WorkingDirectory=/opt/gitlab-pipeline-runner
+
+# Optional secrets and runtime overrides (SESSION_SECRET_KEY, GITLAB_WEBHOOK_SECRET, LDAP_BIND_PASSWORD)
+EnvironmentFile=-/etc/gitlab-pipeline-runner/runner.env
+Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/opt/gitlab-pipeline-runner
+
+# Ensure clean startup via dedicated Python 3.11 virtualenv
+ExecStart=/opt/gitlab-pipeline-runner/.venv/bin/python /opt/gitlab-pipeline-runner/run.py
+
+# Graceful shutdown gives active pipeline worker threads up to 30s to finish or clean up
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Automatic restart on failure
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logging to systemd journal (plus rotating file logger configured in config.yaml)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gitlab-pipeline-runner
+
+# Security hardening (compatible with git/ssh cloning, temp workspaces, and GUI config/DB writes)
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/opt/gitlab-pipeline-runner/data /opt/gitlab-pipeline-runner/logs /opt/gitlab-pipeline-runner/keys /opt/gitlab-pipeline-runner/app/static/branding /opt/gitlab-pipeline-runner/config.yaml
+
+[Install]
+WantedBy=multi-user.target

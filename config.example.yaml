@@ -1,0 +1,74 @@
+# Example configuration for GitLab SSH Pipeline Runner
+# Copy to config.yaml and customize for your environment.
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  app_title: "GitLab SSH Pipeline Runner"
+  workers: 1
+
+webhook:
+  secret_token: "replace-with-your-gitlab-webhook-secret"
+  allowed_events:
+    - "Push Hook"
+    - "Tag Push Hook"
+    - "Merge Request Hook"
+    - "System Hook"
+  allowed_repo_hosts:
+    - "gitlab.com"
+  enable_local_simulator: true
+
+ssh:
+  private_key_path: "keys/id_ed25519"
+  known_hosts_path: "keys/known_hosts"
+  strict_host_key_checking: "accept-new"
+  clone_timeout_seconds: 120
+  clone_depth: 50
+
+pipeline:
+  temp_base_dir: "/tmp/gitlab_pipeline_workspaces"
+  repo_config_filename: ".pipeline.yml"
+  fallback_config_filenames:
+    - ".gitlab-pipeline.yml"
+    - "pipeline.yml"
+  default_scripts:
+    - name: "Inspect Workspace"
+      command: "git status --short && ls -la"
+  step_timeout_seconds: 300
+  max_background_workers: 4
+  secure_cleanup: true
+
+database:
+  engine: "sqlite"
+  sqlite_path: "data/pipeline_audit.db"
+  allowed_dir: "data"
+  wal_mode: true
+
+logging:
+  log_file: "logs/pipeline_runner.log"
+  level: "INFO"
+  max_bytes: 5242880
+  backup_count: 5
+
+auth:
+  enabled: true
+  session_max_age_seconds: 28800
+  allow_local_fallback: true
+  ldap:
+    enabled: false
+    server_uri: "ldaps://ldap.example.com:636"
+    use_ssl: true
+    start_tls: false
+    auth_mode: "search_bind"
+    base_dn: "dc=example,dc=com"
+    user_dn_template: "uid={username},ou=people,dc=example,dc=com"
+    bind_dn: "cn=svc-pipeline,ou=service-accounts,dc=example,dc=com"
+    bind_password_env: "LDAP_BIND_PASSWORD"
+    user_search_filter: "(|(uid={username})(sAMAccountName={username})(mail={username}))"
+    allowed_group_dn: "cn=devops,ou=groups,dc=example,dc=com"
+    timeout_seconds: 10
+
+branding:
+  brand_name: "Pipeline Runner"
+  logo_path: ""
+  login_subtitle: "GitLab SSH Pipeline Runner"

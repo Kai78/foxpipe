@@ -1,0 +1,181 @@
+{% from "partials/brand_logo.html" import render_brand_logo %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In · {{ branding.brand_name if branding else app_title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased flex flex-col justify-center py-12 px-4 sm:px-6">
+    <div class="w-full max-w-md mx-auto">
+      <div class="mb-8 flex items-start gap-3.5">
+        {{ render_brand_logo(branding, "w-11 h-11") }}
+        <div class="min-w-0">
+          <div class="font-display text-xl font-bold tracking-tight text-slate-900 truncate">
+            {{ branding.brand_name if branding else app_title }}
+          </div>
+          {% if branding and branding.login_subtitle %}
+            <div class="text-xs font-medium text-slate-600 mt-0.5 truncate">
+              {{ branding.login_subtitle }}
+            </div>
+          {% endif %}
+          <div class="mt-1 text-xs text-slate-500 flex items-center gap-2">
+            {% if ldap_enabled %}
+              <span>LDAP Directory Authentication</span>
+              <span aria-hidden="true">·</span>
+              <span class="font-mono truncate">{{ ldap_server_uri }}</span>
+            {% elif needs_first_run_setup %}
+              <span>Initial Administrator Setup</span>
+              <span aria-hidden="true">·</span>
+              <span>Configure LDAP after signing in</span>
+            {% else %}
+              <span>Administrator Sign-In</span>
+              <span aria-hidden="true">·</span>
+              <span>LDAP disabled in config.yaml</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="mb-4 bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-800">
+          {{ error }}
+        </div>
+      {% endif %}
+
+      {% if notice %}
+        <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800">
+          {{ notice }}
+        </div>
+      {% endif %}
+
+      <section class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
+        {% if needs_first_run_setup %}
+          <h1 class="font-display text-lg font-semibold text-slate-900">Create Local Admin Passcode</h1>
+          <p class="mt-1.5 text-sm text-slate-600">
+            LDAP authentication is currently disabled. Set an initial administrator passcode to unlock the dashboard and configure your LDAP server.
+          </p>
+
+          <form method="post" action="/login/setup" class="mt-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="next_url" value="{{ next_url }}" />
+
+            <div>
+              <label for="setup-username" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Admin Username
+              </label>
+              <input
+                id="setup-username"
+                name="username"
+                type="text"
+                value="admin"
+                required
+                autocomplete="username"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label for="setup-passcode" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Passcode (minimum 8 characters)
+              </label>
+              <input
+                id="setup-passcode"
+                name="passcode"
+                type="password"
+                minlength="8"
+                required
+                autocomplete="new-password"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label for="setup-confirm" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Confirm Passcode
+              </label>
+              <input
+                id="setup-confirm"
+                name="confirm_passcode"
+                type="password"
+                minlength="8"
+                required
+                autocomplete="new-password"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-2.5 px-4 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              Save Admin &amp; Continue
+            </button>
+          </form>
+        {% else %}
+          <h1 class="font-display text-lg font-semibold text-slate-900">Sign in to Dashboard</h1>
+          <p class="mt-1.5 text-sm text-slate-600">
+            {% if ldap_enabled %}
+              Enter your corporate LDAP credentials ({{ ldap_auth_mode }}).
+            {% else %}
+              Enter your administrator credentials to view pipeline executions and configuration.
+            {% endif %}
+          </p>
+
+          <form method="post" action="/login" class="mt-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="next_url" value="{{ next_url }}" />
+
+            <div>
+              <label for="username" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                autofocus
+                autocomplete="username"
+                placeholder="{% if ldap_enabled %}jdoe{% else %}admin{% endif %}"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label for="password" class="block text-xs font-medium text-slate-700 mb-1.5">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+                class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-2.5 px-4 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              Sign In
+            </button>
+          </form>
+        {% endif %}
+      </section>
+
+      <div class="mt-4 text-xs text-slate-500 flex items-center justify-between">
+        <span>GitLab webhook ingestion remains active at <code class="font-mono">/webhook/gitlab</code></span>
+      </div>
+    </div>
+  </body>
+</html>
