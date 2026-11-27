@@ -158,14 +158,14 @@ The repository already includes a Linux `systemd` deployment path with an instal
 sudo bash deploy/install-systemd.sh
 ```
 
-The installation script runs idempotently and creates the `pipeline-runner` system user, installs the application under `/opt/foxpipe`, preserves runtime data on upgrades, creates a Python virtual environment, installs dependencies, generates `/etc/foxpipe/runner.env` if needed, installs the `foxpipe.service`, reloads `systemd`, enables the service, and starts or restarts it. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)**
+The installation script runs idempotently and creates the `foxpipe` system user, installs the application under `/opt/foxpipe`, preserves runtime data on upgrades, creates a Python virtual environment, installs dependencies, generates `/etc/foxpipe/runner.env` if needed, installs the `foxpipe.service`, reloads `systemd`, enables the service, and starts or restarts it. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)**
 
 ### Option 2: Manual `systemd` setup
 
 ```bash
 npm ci && npm run build
 
-sudo useradd --system --home-dir /opt/foxpipe --shell /usr/sbin/nologin pipeline-runner
+sudo useradd --system --home-dir /opt/foxpipe --shell /usr/sbin/nologin foxpipe
 sudo mkdir -p /opt/foxpipe /etc/foxpipe
 sudo cp -a . /opt/foxpipe/
 
@@ -175,9 +175,9 @@ sudo /opt/foxpipe/.venv/bin/pip install -r /opt/foxpipe/requirements.txt
 sudo cp deploy/runner.env.example /etc/foxpipe/runner.env
 sudo cp deploy/foxpipe.service /etc/systemd/system/foxpipe.service
 
-sudo chown root:pipeline-runner /etc/foxpipe/runner.env
+sudo chown root:foxpipe /etc/foxpipe/runner.env
 sudo chmod 0640 /etc/foxpipe/runner.env
-sudo chown -R pipeline-runner:pipeline-runner /opt/foxpipe
+sudo chown -R foxpipe:foxpipe /opt/foxpipe
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now foxpipe.service
@@ -197,7 +197,7 @@ curl -s http://127.0.0.1:8090/api/health
 - Install dir: `/opt/foxpipe`
 - Env file: `/etc/foxpipe/runner.env`
 - Service name: `foxpipe`
-- System user: `pipeline-runner`
+- System user: `foxpipe`
 
 ### Reverse proxy
 
