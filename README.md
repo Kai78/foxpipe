@@ -114,7 +114,7 @@ The main runtime settings live in `config.yaml` and are grouped into `server`, `
 
 ## Environment Variables
 
-`foxpipe` supports environment-based overrides for secrets, bind settings, reverse proxy handling, and external database credentials. For a production service setup, the canonical environment file is `/etc/gitlab-pipeline-runner/runner.env`. **[10](https://raw.githubusercontent.com/Kai78/foxpipe/main/run.py)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)**
+`foxpipe` supports environment-based overrides for secrets, bind settings, reverse proxy handling, and external database credentials. For a production service setup, the canonical environment file is `/etc/foxpipe/runner.env`. **[10](https://raw.githubusercontent.com/Kai78/foxpipe/main/run.py)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)**
 
 - `SESSION_SECRET_KEY`
 - `GITLAB_WEBHOOK_SECRET`
@@ -150,7 +150,7 @@ The dashboard covers login, first-run admin setup, execution history, execution 
 
 ## Run as a Linux `systemd` Service
 
-The repository already includes a Linux `systemd` deployment path with an installation script, example environment file, service unit, and optional Nginx reverse proxy configuration. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)** **[15](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/gitlab-pipeline-runner.service)**
+The repository already includes a Linux `systemd` deployment path with an installation script, example environment file, service unit, and optional Nginx reverse proxy configuration. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)** **[15](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/foxpipe.service)**
 
 ### Option 1: Automated installation
 
@@ -158,50 +158,50 @@ The repository already includes a Linux `systemd` deployment path with an instal
 sudo bash deploy/install-systemd.sh
 ```
 
-The installation script runs idempotently and creates the `pipeline-runner` system user, installs the application under `/opt/gitlab-pipeline-runner`, preserves runtime data on upgrades, creates a Python virtual environment, installs dependencies, generates `/etc/gitlab-pipeline-runner/runner.env` if needed, installs the `gitlab-pipeline-runner.service`, reloads `systemd`, enables the service, and starts or restarts it. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)**
+The installation script runs idempotently and creates the `pipeline-runner` system user, installs the application under `/opt/foxpipe`, preserves runtime data on upgrades, creates a Python virtual environment, installs dependencies, generates `/etc/foxpipe/runner.env` if needed, installs the `foxpipe.service`, reloads `systemd`, enables the service, and starts or restarts it. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)** **[14](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/install-systemd.sh)**
 
 ### Option 2: Manual `systemd` setup
 
 ```bash
 npm ci && npm run build
 
-sudo useradd --system --home-dir /opt/gitlab-pipeline-runner --shell /usr/sbin/nologin pipeline-runner
-sudo mkdir -p /opt/gitlab-pipeline-runner /etc/gitlab-pipeline-runner
-sudo cp -a . /opt/gitlab-pipeline-runner/
+sudo useradd --system --home-dir /opt/foxpipe --shell /usr/sbin/nologin pipeline-runner
+sudo mkdir -p /opt/foxpipe /etc/foxpipe
+sudo cp -a . /opt/foxpipe/
 
-sudo python3.11 -m venv /opt/gitlab-pipeline-runner/.venv
-sudo /opt/gitlab-pipeline-runner/.venv/bin/pip install -r /opt/gitlab-pipeline-runner/requirements.txt
+sudo python3.11 -m venv /opt/foxpipe/.venv
+sudo /opt/foxpipe/.venv/bin/pip install -r /opt/foxpipe/requirements.txt
 
-sudo cp deploy/runner.env.example /etc/gitlab-pipeline-runner/runner.env
-sudo cp deploy/gitlab-pipeline-runner.service /etc/systemd/system/gitlab-pipeline-runner.service
+sudo cp deploy/runner.env.example /etc/foxpipe/runner.env
+sudo cp deploy/foxpipe.service /etc/systemd/system/foxpipe.service
 
-sudo chown root:pipeline-runner /etc/gitlab-pipeline-runner/runner.env
-sudo chmod 0640 /etc/gitlab-pipeline-runner/runner.env
-sudo chown -R pipeline-runner:pipeline-runner /opt/gitlab-pipeline-runner
+sudo chown root:pipeline-runner /etc/foxpipe/runner.env
+sudo chmod 0640 /etc/foxpipe/runner.env
+sudo chown -R pipeline-runner:pipeline-runner /opt/foxpipe
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now gitlab-pipeline-runner.service
+sudo systemctl enable --now foxpipe.service
 ```
 
 ### Service management
 
 ```bash
-sudo systemctl status gitlab-pipeline-runner
-sudo journalctl -u gitlab-pipeline-runner -f
-sudo systemctl restart gitlab-pipeline-runner
+sudo systemctl status foxpipe
+sudo journalctl -u foxpipe -f
+sudo systemctl restart foxpipe
 curl -s http://127.0.0.1:8090/api/health
 ```
 
 ### Runtime paths
 
-- Install dir: `/opt/gitlab-pipeline-runner`
-- Env file: `/etc/gitlab-pipeline-runner/runner.env`
-- Service name: `gitlab-pipeline-runner`
+- Install dir: `/opt/foxpipe`
+- Env file: `/etc/foxpipe/runner.env`
+- Service name: `foxpipe`
 - System user: `pipeline-runner`
 
 ### Reverse proxy
 
-If you want HTTPS in front of the service, use the provided Nginx example at `deploy/nginx.gitlab-pipeline-runner.conf.example` and keep the Python service bound to `127.0.0.1`. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)**
+If you want HTTPS in front of the service, use the provided Nginx example at `deploy/nginx.foxpipe.conf.example` and keep the Python service bound to `127.0.0.1`. **[11](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/README.md)**
 
 ## Storage Backends
 
@@ -242,7 +242,7 @@ The repository currently contains application code, deployment assets, tests, an
 
 ## Security Notes
 
-Before using `foxpipe` in production, review the webhook secret, SSH private key permissions, allowed GitLab hosts, host key verification mode, LDAP configuration, reverse proxy / TLS setup, database credential handling, and file permissions for `config.yaml`, `runner.env`, and `keys/`. **[7](https://raw.githubusercontent.com/Kai78/foxpipe/main/app/git_service.py)** **[9](https://raw.githubusercontent.com/Kai78/foxpipe/main/config.example.yaml)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)** **[15](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/gitlab-pipeline-runner.service)**
+Before using `foxpipe` in production, review the webhook secret, SSH private key permissions, allowed GitLab hosts, host key verification mode, LDAP configuration, reverse proxy / TLS setup, database credential handling, and file permissions for `config.yaml`, `runner.env`, and `keys/`. **[7](https://raw.githubusercontent.com/Kai78/foxpipe/main/app/git_service.py)** **[9](https://raw.githubusercontent.com/Kai78/foxpipe/main/config.example.yaml)** **[12](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/runner.env.example)** **[15](https://raw.githubusercontent.com/Kai78/foxpipe/main/deploy/foxpipe.service)**
 
 ## Typical Use Cases
 
